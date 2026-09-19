@@ -1,0 +1,232 @@
+# Example scenario for an electric-car plant. Numbers are made up but have
+# roughly the proportions of the university game this model was written for.
+# Lists indexed by period start at period 1.
+
+[game]
+period = 9
+cash = 900_000
+last_period = 16
+horizon = 3                  # current period + the two whose prices are announced
+min_cash = 50_000
+fixed_cost_per_period = 10_000
+floor_space = 5_000          # m2
+co2_price = [55, 58, 60, 64, 68, 70, 75, 80, 84, 88, 92, 95, 100, 105, 110, 115]  # EUR/t
+loan_repayments = { 10 = 60_000 }
+
+# ---------------------------------------------------------------- items
+# stock = what is in the warehouse at the start of `period`
+
+[items.motor]
+holding_cost = 20
+scrap_price = 500
+[items.gearbox]
+holding_cost = 15
+scrap_price = 250
+[items.battery]
+holding_cost = 60
+scrap_price = 4_000
+[items.wheel]
+holding_cost = 5
+stock = 120
+scrap_price = 60
+[items.suspension]
+holding_cost = 10
+scrap_price = 300
+[items.steel_sheet]
+holding_cost = 4
+stock = 300
+scrap_price = 90
+[items.core]
+holding_cost = 10
+[items.e_axle]
+holding_cost = 150
+stock = 20
+[items.chassis]
+holding_cost = 120
+[items.body]
+holding_cost = 140
+[items.car]
+holding_cost = 300
+stock = 150
+[items.reman_axle]
+holding_cost = 150
+
+# ---------------------------------------------------------------- processes
+# machines / workers: units one machine / one worker handles per period
+
+[processes.axle]
+output = "e_axle"
+inputs = { motor = 1, gearbox = 1 }
+machines = { axle_line = 100 }
+workers = { machinist = 50 }
+co2_per_unit = 0.4
+
+[processes.chassis]
+output = "chassis"
+inputs = { wheel = 4, suspension = 1 }
+machines = { chassis_line = 100 }
+workers = { mechanic = 50 }
+
+[processes.body]
+output = "body"
+inputs = { steel_sheet = 6 }
+machines = { press = 120, welding_robot = 50 }
+workers = { machinist = 50 }
+
+[processes.assembly]
+output = "car"
+inputs = { e_axle = 1, chassis = 1, body = 1, battery = 1 }
+machines = { assembly_line = 80, welding_robot = 50 }
+workers = { mechanic = 50, inspector = 100 }
+
+# Unlocked in period 5: refurbish returned axles instead of building new ones.
+[processes.remanufacture]
+output = "reman_axle"
+inputs = { core = 1 }
+machines = { reman_cell = 50 }
+workers = { machinist = 50 }
+available_from = 5
+
+# Unlocked in period 9: an inspected refurbished axle counts as a new one.
+# Inspectors are half as fast here as on the assembly line.
+[processes.quality_check]
+output = "e_axle"
+inputs = { reman_axle = 1 }
+workers = { inspector = 50 }
+available_from = 9
+
+# ---------------------------------------------------------------- machines
+
+[machines.axle_line]
+owned = 3
+price = 400_000
+floor_space = 300
+co2_at_purchase = 150
+co2_per_period = 20
+[machines.chassis_line]
+owned = 3
+price = 350_000
+floor_space = 250
+co2_per_period = 15
+[machines.press]
+owned = 3
+price = 300_000
+floor_space = 200
+co2_per_period = 25
+[machines.welding_robot]
+owned = 12
+price = 90_000
+floor_space = 40
+co2_per_period = 5
+[machines.assembly_line]
+owned = 4
+price = 600_000
+floor_space = 500
+co2_per_period = 30
+[machines.reman_cell]
+owned = 1
+price = 250_000
+floor_space = 150
+co2_per_period = 2
+
+# ---------------------------------------------------------------- staff
+
+[roles.machinist]
+count = 14
+salary = 4_200
+fire_cost = 8_000
+[roles.mechanic]
+count = 12
+salary = 3_900
+fire_cost = 7_500
+[roles.inspector]
+count = 3
+salary = 3_600
+fire_cost = 6_000
+
+# ---------------------------------------------------------------- suppliers
+
+[[suppliers]]
+item = "motor"
+name = "Voltwerk"
+price = 1_150
+delivery_fee = 3_000
+co2_per_unit = 1.2
+min_qty = 100
+[[suppliers]]
+item = "motor"
+name = "Kessler"
+price = 1_320
+delivery_fee = 500
+co2_per_unit = 0.8
+[[suppliers]]
+item = "gearbox"
+name = "Getrag-Nord"
+price = 580
+delivery_fee = 1_500
+co2_per_unit = 0.5
+[[suppliers]]
+item = "battery"
+name = "CellCo"
+price = 8_800
+delivery_fee = 5_000
+co2_per_unit = 6.0
+min_qty = 150
+[[suppliers]]
+item = "battery"
+name = "Nordcell"
+price = 9_400
+delivery_fee = 2_000
+co2_per_unit = 3.5
+[[suppliers]]
+item = "wheel"
+name = "Radhaus"
+price = 140
+delivery_fee = 800
+co2_per_unit = 0.1
+[[suppliers]]
+item = "suspension"
+name = "Federlein"
+price = 760
+delivery_fee = 1_200
+co2_per_unit = 0.3
+[[suppliers]]
+item = "steel_sheet"
+name = "Stahl AG"
+price = 230
+delivery_fee = 2_500
+co2_per_unit = 0.9
+min_qty = 600
+[[suppliers]]
+item = "core"
+name = "ReturnLogistics"
+price = 600
+delivery_fee = 2_000
+
+# ---------------------------------------------------------------- markets
+# 0 demand = market not open yet
+
+[markets.car]
+demand = [0, 180, 210, 240, 270, 300, 320, 340, 360, 390, 420, 430, 420, 400, 380, 350]
+price  = [0, 21_000, 21_000, 21_500, 21_500, 22_000, 22_000, 22_500, 22_500, 23_000, 23_000, 22_500, 22_500, 22_000, 21_500, 21_000]
+
+[markets.e_axle]
+demand = [0, 0, 0, 0, 40, 50, 50, 60, 60, 60, 70, 70, 60, 60, 50, 50]
+price  = [0, 0, 0, 0, 2_300, 2_350, 2_400, 2_400, 2_450, 2_450, 2_500, 2_500, 2_450, 2_400, 2_400, 2_350]
+
+[markets.reman_axle]
+demand = [0, 0, 0, 0, 30, 40, 40, 50, 50, 60, 60, 60, 60, 50, 50, 40]
+price  = [0, 0, 0, 0, 1_400, 1_450, 1_500, 1_500, 1_550, 1_550, 1_600, 1_600, 1_550, 1_500, 1_500, 1_450]
+
+# ---------------------------------------------------------------- financing
+
+[[loans]]
+name = "short"
+max_amount = 500_000
+rate = 0.06
+disagio = 0.02
+[[loans]]
+name = "long"
+max_amount = 1_000_000
+rate = 0.04
+disagio = 0.05
